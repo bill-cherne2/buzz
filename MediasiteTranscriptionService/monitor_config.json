@@ -1,0 +1,18 @@
+{
+  "MonitorDir": "%USERPROFILE%\\Documents\\Recorded Presentations",
+  "BuzzExePath": "C:\\Program Files (x86)\\Buzz\\Buzz.exe",
+  "PollIntervalSeconds": 20,
+  "ModelArgs": "--model-type fasterwhisper --model-size tiny.en",
+  "Prompt": "",
+  "WordTimestamps": true,
+  "MaxCharsPerCue": 80,
+  "MaxSecondsPerCue": 4.0,
+  "MaxWordsPerCue": 12,
+  "MinDurationSeconds": 0.4,
+  "PauseThresholdMs": 300,
+  "PreferPunctuation": true,
+  "ReprocessIfMissingSrt": true,
+  "ProcessedFile": "processed.json",
+  "RetryCount": 1,
+  "TimeoutSeconds": 3600
+}

@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import re
 import subprocess
 import shutil
 import tempfile
@@ -216,12 +217,90 @@ def write_output(
                 file.write(f"{getattr(segment, segment_key)}\n\n")
 
         elif output_format == OutputFormat.SRT:
-            for i, segment in enumerate(segments):
+            # Merge short/per-word segments into readable cues before writing.
+            def _env_int(name, default):
+                try:
+                    return int(os.getenv(name, str(default)))
+                except Exception:
+                    return default
+
+            def _env_float(name, default):
+                try:
+                    return float(os.getenv(name, str(default)))
+                except Exception:
+                    return default
+
+            max_chars = _env_int('BUZZ_SRT_MAX_CHARS', 80)
+            max_seconds = _env_float('BUZZ_SRT_MAX_SECONDS', 4.0)
+            max_words = _env_int('BUZZ_SRT_MAX_WORDS', 12)
+            min_duration = _env_float('BUZZ_SRT_MIN_DURATION', 0.4)
+            pause_ms = _env_int('BUZZ_SRT_PAUSE_MS', 300)
+            prefer_punct = os.getenv('BUZZ_SRT_PREFER_PUNCT', '1') not in ('0','false','False','no','')
+
+            # Build lightweight parsed list
+            parsed = []
+            for seg in segments:
+                text = getattr(seg, segment_key).strip()
+                word_count = len([w for w in text.split() if w]) if text else 0
+                parsed.append({
+                    'start': seg.start,
+                    'end': seg.end,
+                    'text': text,
+                    'start_ms': int(seg.start),
+                    'end_ms': int(seg.end),
+                    'word_count': word_count,
+                    'duration_ms': int(seg.end - seg.start),
+                })
+
+            merged = []
+            cur = None
+            for it in parsed:
+                if cur is None:
+                    cur = dict(it)
+                    continue
+                # prefer ending punctuation
+                cur_ends = False
+                if prefer_punct and re.search(r'[\.\!\?]$', (cur.get('text') or '')):
+                    merged.append(cur)
+                    cur = dict(it)
+                    continue
+
+                gap = it['start_ms'] - cur['end_ms']
+                if gap > pause_ms:
+                    merged.append(cur)
+                    cur = dict(it)
+                    continue
+
+                new_text = (cur['text'].strip() + ' ' + it['text'].strip()).strip()
+                new_word_count = cur['word_count'] + it['word_count']
+                new_duration_ms = it['end_ms'] - cur['start_ms']
+                can_merge = (len(new_text) <= max_chars) and ((new_duration_ms/1000.0) <= max_seconds) and (new_word_count <= max_words)
+                if can_merge:
+                    cur['end'] = it['end']
+                    cur['end_ms'] = it['end_ms']
+                    cur['text'] = new_text
+                    cur['word_count'] = new_word_count
+                    cur['duration_ms'] = new_duration_ms
+                    continue
+
+                if (cur['duration_ms']/1000.0) < min_duration:
+                    if (len(new_text) <= (max_chars * 1.5)) and ((new_duration_ms/1000.0) <= (max_seconds * 1.5)) and (new_word_count <= (max_words * 2)):
+                        cur['end'] = it['end']
+                        cur['end_ms'] = it['end_ms']
+                        cur['text'] = new_text
+                        cur['word_count'] = new_word_count
+                        cur['duration_ms'] = new_duration_ms
+                        continue
+
+                merged.append(cur)
+                cur = dict(it)
+            if cur is not None:
+                merged.append(cur)
+
+            for i, m in enumerate(merged):
                 file.write(f"{i + 1}\n")
-                file.write(
-                    f'{to_timestamp(segment.start, ms_separator=",")} --> {to_timestamp(segment.end, ms_separator=",")}\n'
-                )
-                file.write(f"{getattr(segment, segment_key)}\n\n")
+                file.write(f"{to_timestamp(m['start'], ms_separator=',')} --> {to_timestamp(m['end'], ms_separator=',')}\n")
+                file.write(f"{m['text']}\n\n")
 
     logging.debug("Written transcription output")
 
