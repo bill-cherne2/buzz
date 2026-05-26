@@ -104,3 +104,18 @@ You can help the Buzz by starring 🌟 the repo and sharing it with your friends
     <img alt="Resize" src="https://github.com/chidiwilliams/buzz/raw/main/share/screenshots/buzz-6-resize.png" style="max-width: 18%;" />
 </div>
 
+## Using the Mediasite transcribe script
+
+- **Location:** MediasiteTranscriptionService/transcribe.ps1
+- **Purpose:** Wrapper around the Buzz CLI to transcribe a single media file and produce an SRT next to the source file (renames the generated SRT to match the source basename).
+- **Requirements:** Windows, an installed Buzz application (Buzz.exe). The script defaults to `C:\Program Files (x86)\Buzz\Buzz.exe` but you can edit the path at the top of the script.
+- **Notes:** The script invokes the installed `Buzz.exe` (no Python required), runs it from its install directory, captures combined stdout/stderr to a temp log (the script prints the log path), and ensures the final filename ends with `.srt`.
+- **Usage:**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "MediasiteTranscriptionService\transcribe.ps1" "C:\path\to\your file.mp4"
+```
+
+- **Defaults:** `ModelType='whisper'`, `ModelSize='tiny'`, `Language='auto'`, `HideGUI=$true`. To change these defaults edit the variables at the top of `transcribe.ps1` (`$ModelType`, `$ModelSize`, `$Language`, `$HideGUI`, `$UseExeWorkingDirectory`).
+- **Troubleshooting:** If a run fails, the script prints the temp log path. You can also inspect the Buzz logs at `%LOCALAPPDATA%\Buzz\Buzz\Logs\logs.txt` for detailed errors.
+
