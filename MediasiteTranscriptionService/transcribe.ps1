@@ -37,13 +37,13 @@ if ($Help -or -not $SourceFile) {
 # Model type: e.g. "whisper", "whisper.cpp", "faster_whisper"
 $ModelType = 'whisper'
 # Model size: tiny, small, base, medium, large
-$ModelSize = 'base'
+$ModelSize = 'small'
 # Language: use 'auto' to let Buzz auto-detect, or e.g. 'en'
 $Language = 'auto'
 # Output type: currently only 'SRT' is supported in this wrapper
 $OutputType = 'SRT'
 # Hide GUI while processing
-$HideGUI = $true
+$HideGUI = true
 # When true, invoke Buzz.exe with its working directory set to the install
 # folder (where you ran the successful command). When true the script will
 # NOT pass `--output-directory` or `--hide-gui` to match the working command.
